@@ -54,7 +54,7 @@ def initiate_models(modelCount):
 def load_pool(modelCount):
     if load_saved_pool:
         for modelIdx in range(modelCount):
-            current_pool[modelIdx].load_weights("current_Model/model_new" + str(modelIdx) + ".keras")
+            current_pool[modelIdx].load_weights("current_model/model_new" + str(modelIdx) + ".weights.h5")
 
     for modelIdx in range(modelCount):
         print(current_pool[modelIdx].get_weights())
