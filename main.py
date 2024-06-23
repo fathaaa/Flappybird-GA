@@ -1,55 +1,72 @@
-from Code import *
+import pygame
+from sys import exit
+import config
+import components
+import population
+
+pygame.init()
+clock = pygame.time.Clock()
+population = population.Population(100)
+background_image = pygame.image.load('background.png')  # Sesuaikan dengan path yang tepat
+background_image = pygame.transform.scale(background_image, (config.win_width, config.win_height))
+
+def generate_pipes():
+    config.pipes.append(components.Pipes(config.win_width))
+
+def quit_game(i, score):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            print('-'*20)
+            print(f'ITERASI KE-{i}')
+            print()
+            print(f'Score:              {score}')
+            population.natural_selection(i)
+            pygame.quit()
+            exit()
 
 def main():
-    global SCREEN, FPSCLOCK
-    initiate_models(total_models)
-    load_pool(total_models)
-    pygame.init()
-    FPSCLOCK = pygame.time.Clock()
-    SCREEN = pygame.display.set_mode((int(SCREENWIDTH), int(SCREENHEIGHT)))
-    pygame.display.set_caption('Flappy Bird')
-    IMAGES['numbers'] = (
-        pygame.image.load('asset/Images/0.png').convert_alpha(),
-        pygame.image.load('asset/Images/1.png').convert_alpha(),
-        pygame.image.load('asset/Images/2.png').convert_alpha(),
-        pygame.image.load('asset/Images/3.png').convert_alpha(),
-        pygame.image.load('asset/Images/4.png').convert_alpha(),
-        pygame.image.load('asset/Images/5.png').convert_alpha(),
-        pygame.image.load('asset/Images/6.png').convert_alpha(),
-        pygame.image.load('asset/Images/7.png').convert_alpha(),
-        pygame.image.load('asset/Images/8.png').convert_alpha(),
-        pygame.image.load('asset/Images/9.png').convert_alpha())
-    IMAGES['gameover'] = pygame.image.load('asset/Images/gameover.png').convert_alpha()
-    IMAGES['message'] = pygame.image.load('asset/Images/message.png').convert_alpha()
-    IMAGES['base'] = pygame.image.load('asset/Images/base.png').convert_alpha()
-    if 'win' in sys.platform:
-        soundExtension = '.wav'
-    else:
-        soundExtension = '.ogg'
-    SOUNDS['die'] = pygame.mixer.Sound('asset/Sounds/die' + soundExtension)
-    SOUNDS['hit'] = pygame.mixer.Sound('asset/Sounds/hit' + soundExtension)
-    SOUNDS['point'] = pygame.mixer.Sound('asset/Sounds/point' + soundExtension)
-    SOUNDS['swoosh'] = pygame.mixer.Sound('asset/Sounds/swoosh' + soundExtension)
-    SOUNDS['wing'] = pygame.mixer.Sound('asset/Sounds/wing' + soundExtension)
-    while True:
-        backgroundIndex = random.randint(0, len(BACKGROUNDS_LIST) - 1)
-        IMAGES['background'] = pygame.image.load(BACKGROUNDS_LIST[backgroundIndex]).convert()
-        playerIndex = random.randint(0, len(PLAYERS_LIST) - 1)
-        IMAGES['player'] = (
-            pygame.image.load(PLAYERS_LIST[playerIndex][0]).convert_alpha(),
-            pygame.image.load(PLAYERS_LIST[playerIndex][1]).convert_alpha(),
-            pygame.image.load(PLAYERS_LIST[playerIndex][2]).convert_alpha(),)
-        pipeIndex = random.randint(0, len(PIPES_LIST) - 1)
-        IMAGES['pipe'] = (
-            pygame.transform.rotate(pygame.image.load(PIPES_LIST[pipeIndex]).convert_alpha(), 180),pygame.image.load(PIPES_LIST[pipeIndex]).convert_alpha(),)
-        HITMASKS['pipe'] = (getHitmask(IMAGES['pipe'][0]),getHitmask(IMAGES['pipe'][1]),)
-        HITMASKS['player'] = (getHitmask(IMAGES['player'][0]),getHitmask(IMAGES['player'][1]),getHitmask(IMAGES['player'][2]),)
-        introData = showWelcomeAnimation()
-        global fitness
-        for modelIdx in range(total_models):
-            fitness[modelIdx] = 0
-        crashData = mainGame(introData, SCREEN, FPSCLOCK)
-        showGameOverScreen(crashData)
+    pipes_spawn_time = 10
+    score = 0
 
-if __name__ == '__main__':
-    main()
+    i = 0
+    while True:
+        quit_game(i, score)
+
+        config.window.blit(background_image,(0,0))
+
+        # Spawn Ground
+        config.ground.draw(config.window)
+
+        # Spawn Pipes
+        if pipes_spawn_time <= 0:
+            generate_pipes()
+            pipes_spawn_time = 200
+        pipes_spawn_time -= 1
+
+        for p in config.pipes:
+            p.draw(config.window)
+            p.update()
+            if p.off_screen:
+                score += 1
+                config.pipes.remove(p)
+
+        if not population.extinct():
+            population.update_live_players()
+        else:
+            temp = score
+            for p in config.pipes:
+                if p.passed:
+                    temp += 1
+            config.pipes.clear()
+            print('-'*20)
+            print(f'ITERASI KE-{i}')
+            print()
+            print(f'Score:              {score}')
+            population.natural_selection(i)
+
+            i += 1
+
+        clock.tick(60)
+        pygame.display.flip()
+
+main()
