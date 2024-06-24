@@ -27,10 +27,10 @@ def quit_game(i, score):
 def main():
     pipes_spawn_time = 10
     score = 0
-
     i = 0
     while True:
         quit_game(i, score)
+        
 
         config.window.blit(background_image,(0,0))
 
@@ -40,7 +40,7 @@ def main():
         # Spawn Pipes
         if pipes_spawn_time <= 0:
             generate_pipes()
-            pipes_spawn_time = 200
+            pipes_spawn_time = 350
         pipes_spawn_time -= 1
 
         for p in config.pipes:
@@ -65,6 +65,7 @@ def main():
             population.natural_selection(i)
 
             i += 1
+            score = 0
 
         clock.tick(60)
         pygame.display.flip()
