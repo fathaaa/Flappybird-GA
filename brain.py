@@ -1,89 +1,74 @@
-import node
-import connection
+import neuron
+import synapse
 import random
 
+class NeuralNetwork:
+    def __init__(self, sensor_count, is_clone=False):
+        self.synapses = []
+        self.neurons = []
+        self.sensors = sensor_count
+        self.neural_layers = []
+        self.layer_count = 2
 
-class Brain:
-    def __init__(self, inputs, clone=False):
-        self.connections = []
-        self.nodes = []
-        self.inputs = inputs
-        self.net = []
-        self.layers = 2
+        if not is_clone:
+            for i in range(self.sensors):
+                self.neurons.append(neuron.Neuron(i))
+                self.neurons[i].network_layer = 0
+            self.neurons.append(neuron.Neuron(3))
+            self.neurons[3].network_layer = 0
+            self.neurons.append(neuron.Neuron(4))
+            self.neurons[4].network_layer = 1
 
-        if not clone:
-            # Create input nodes
-            for i in range(0, self.inputs):
-                self.nodes.append(node.Node(i))
-                self.nodes[i].layer = 0
-            # Create bias node
-            self.nodes.append(node.Node(3))
-            self.nodes[3].layer = 0
-            # Create output node
-            self.nodes.append(node.Node(4))
-            self.nodes[4].layer = 1
+            for i in range(4):
+                self.synapses.append(synapse.Synapse(self.neurons[i], self.neurons[4], random.uniform(-1, 1)))
 
-            # Create connections
-            for i in range(0, 4):
-                self.connections.append(connection.Connection(self.nodes[i],
-                                                              self.nodes[4],
-                                                              random.uniform(-1, 1)))
+    def setup_connections(self):
+        for neuron in self.neurons:
+            neuron.synapses = []
 
-    def connect_nodes(self):
-        for i in range(0, len(self.nodes)):
-            self.nodes[i].connections = []
+        for synapse in self.synapses:
+            synapse.start_neuron.synapses.append(synapse)
 
-        for i in range(0, len(self.connections)):
-            self.connections[i].from_node.connections.append(self.connections[i])
+    def build_network(self):
+        self.setup_connections()
+        self.neural_layers = []
+        for j in range(self.layer_count):
+            for neuron in self.neurons:
+                if neuron.network_layer == j:
+                    self.neural_layers.append(neuron)
 
-    def generate_net(self):
-        self.connect_nodes()
-        self.net = []
-        for j in range(0, self.layers):
-            for i in range(0, len(self.nodes)):
-                if self.nodes[i].layer == j:
-                    self.net.append(self.nodes[i])
+    def process_inputs(self, inputs):
+        for i in range(self.sensors):
+            self.neurons[i].output = inputs[i]
+        self.neurons[3].output = 1
 
-    def feed_forward(self, vision):
-        for i in range(0, self.inputs):
-            self.nodes[i].output_value = vision[i]
+        for neuron in self.neural_layers:
+            neuron.fire()
 
-        self.nodes[3].output_value = 1
+        output = self.neurons[4].output
+        for neuron in self.neurons:
+            neuron.input = 0
 
-        for i in range(0, len(self.net)):
-            self.net[i].activate()
+        return output
 
-        # Get output value from output node
-        output_value = self.nodes[4].output_value
+    def replicate(self):
+        replica = NeuralNetwork(self.sensors, True)
+        for n in self.neurons:
+            replica.neurons.append(n.replicate())
 
-        # Reset node input values - only node 6 Missing Natural Selection in this case
-        for i in range(0, len(self.nodes)):
-            self.nodes[i].input_value = 0
+        for s in self.synapses:
+            replica.synapses.append(s.replicate(replica.get_neuron(s.start_neuron.id), replica.get_neuron(s.end_neuron.id)))
 
-        return output_value
+        replica.layer_count = self.layer_count
+        replica.setup_connections()
+        return replica
 
-    def clone(self):
-        clone = Brain(self.inputs, True)
+    def get_neuron(self, id):
+        for neuron in self.neurons:
+            if neuron.id == id:
+                return neuron
 
-        # Clone all the nodes
-        for n in self.nodes:
-            clone.nodes.append(n.clone())
-
-        # Clone all connections
-        for c in self.connections:
-            clone.connections.append(c.clone(clone.getNode(c.from_node.id), clone.getNode(c.to_node.id)))
-
-        clone.layers = self.layers
-        clone.connect_nodes()
-        return clone
-
-    def getNode(self, id):
-        for n in self.nodes:
-            if n.id == id:
-                return n
-
-    # 80 % chance that a connection undergoes mutation
-    def mutate(self):
+    def evolve(self):
         if random.uniform(0, 1) < 0.8:
-            for i in range(0, len(self.connections)):
-                self.connections[i].mutate_weight()
+            for synapse in self.synapses:
+                synapse.adjust_weight()

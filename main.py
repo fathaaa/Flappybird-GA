@@ -1,71 +1,64 @@
 import pygame
 from sys import exit
-import config
-import components
-import population
+import config_modified as config
+import components_modified as components
+import population_modified as population_mod
 
 pygame.init()
 clock = pygame.time.Clock()
-population = population.Population(100)
-background_image = pygame.image.load('background.png')  # Sesuaikan dengan path yang tepat
-background_image = pygame.transform.scale(background_image, (config.win_width, config.win_height))
+population = population_mod.Population(100)
+background = pygame.image.load('background.png')  # Adjust with correct path
+background = pygame.transform.scale(background, (config.screen_width, config.screen_height))
 
-def generate_pipes():
-    config.pipes.append(components.Pipes(config.win_width))
+def spawn_obstacles():
+    config.obstacles.append(components.Obstacles(config.screen_width))
 
-def quit_game(i, score):
+def close_game(iteration, points):
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             print('-'*20)
-            print(f'ITERASI KE-{i}')
-            print()
-            print(f'Score:              {score}')
-            population.natural_selection(i)
+            print(f'ITERATION {iteration}')
+            print(f'Score: {points}')
+            population.perform_selection(iteration)
             pygame.quit()
             exit()
 
 def main():
-    pipes_spawn_time = 10
-    score = 0
-    i = 0
+    obstacle_timer = 10
+    points = 0
+    iteration = 0
     while True:
-        quit_game(i, score)
-        
+        close_game(iteration, points)
+        config.display.blit(background, (0,0))
+        config.terrain.render(config.display)
 
-        config.window.blit(background_image,(0,0))
+        if obstacle_timer <= 0:
+            spawn_obstacles()
+            obstacle_timer = 350
+        obstacle_timer -= 1
 
-        # Spawn Ground
-        config.ground.draw(config.window)
+        for obs in config.obstacles:
+            obs.render(config.display)
+            obs.move()
+            if obs.is_off_screen:
+                points += 1
+                config.obstacles.remove(obs)
 
-        # Spawn Pipes
-        if pipes_spawn_time <= 0:
-            generate_pipes()
-            pipes_spawn_time = 350
-        pipes_spawn_time -= 1
-
-        for p in config.pipes:
-            p.draw(config.window)
-            p.update()
-            if p.off_screen:
-                score += 1
-                config.pipes.remove(p)
-
-        if not population.extinct():
-            population.update_live_players()
+        if not population.is_extinct():
+            population.update_alive_avatars()
         else:
-            temp = score
-            for p in config.pipes:
-                if p.passed:
-                    temp += 1
-            config.pipes.clear()
+            temp_points = points
+            for obs in config.obstacles:
+                if obs.is_passed:
+                    temp_points += 1
+            config.obstacles.clear()
             print('-'*20)
-            print(f'ITERASI KE-{i}')
-            print()
-            print(f'Score:              {score}')
-            population.natural_selection(i)
+            print(f'ITERATION {iteration}')
+            print(f'Score: {points}')
+            population.perform_selection(iteration)
 
-            i += 1
-            score = 0
+            iteration += 1
+            points = 0
 
         clock.tick(60)
         pygame.display.flip()

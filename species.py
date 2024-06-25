@@ -2,62 +2,48 @@ import operator
 import random
 
 class Species:
-    def __init__(self, player):
-        self.players = []
-        self.average_fitness = 0
-        self.threshold = 1.2
-        self.players.append(player)
-        self.benchmark_fitness = player.fitness
-        self.benchmark_brain = player.brain.clone()
-        self.champion = player.clone()
-        self.staleness = 0
+    def __init__(self, avatar):
+        self.avatars = []
+        self.avg_fitness = 0
+        self.similarity_threshold = 1.2
+        self.avatars.append(avatar)
+        self.benchmark_fitness = avatar.efficiency
+        self.benchmark_brain = avatar.brain.replicate()
+        self.champion = avatar.replicate()
+        self.stagnation = 0
 
-    def similarity(self, brain):
-        similarity = self.weight_difference(self.benchmark_brain, brain)
-        return self.threshold > similarity
+    def check_similarity(self, brain):
+        difference = self.weight_difference(self.benchmark_brain, brain)
+        return self.similarity_threshold > difference
 
     @staticmethod
-    def weight_difference(brain_1, brain_2):
-        total_weight_difference = 0
-        for i in range(0, len(brain_1.connections)):
-            for j in range(0, len(brain_2.connections)):
+    def weight_difference(brain1, brain2):
+        total_difference = 0
+        for i in range(len(brain1.synapses)):
+            for j in range(len(brain2.synapses)):
                 if i == j:
-                    total_weight_difference += abs(brain_1.connections[i].weight -
-                                                   brain_2.connections[j].weight)
-        return total_weight_difference
+                    total_difference += abs(brain1.synapses[i].weight - brain2.synapses[j].weight)
+        return total_difference
 
-    def add_to_species(self, player):
-        self.players.append(player)
+    def add_to_clan(self, avatar):
+        self.avatars.append(avatar)
 
-    def sort_players_by_fitness(self):
-        self.players.sort(key=operator.attrgetter('fitness'), reverse=True)
-        if self.players[0].fitness > self.benchmark_fitness:
-            self.staleness = 0
-            self.benchmark_fitness = self.players[0].fitness
-            self.champion = self.players[0].clone()
+    def rank_by_fitness(self):
+        self.avatars.sort(key=operator.attrgetter('efficiency'), reverse=True)
+        if self.avatars[0].efficiency > self.benchmark_fitness:
+            self.stagnation = 0
+            self.benchmark_fitness = self.avatars[0].efficiency
+            self.champion = self.avatars[0].replicate()
         else:
-            self.staleness += 1
+            self.stagnation += 1
 
-    def calculate_average_fitness(self):
+    def compute_avg_fitness(self):
         total_fitness = 0
-        for p in self.players:
-            total_fitness += p.fitness
-        if self.players:
-            self.average_fitness = int(total_fitness / len(self.players))
-        else:
-            self.average_fitness = 0
+        for avatar in self.avatars:
+            total_fitness += avatar.efficiency
+        self.avg_fitness = int(total_fitness / len(self.avatars)) if self.avatars else 0
 
-    def offspring(self):
-        baby = self.players[random.randint(1, len(self.players)) - 1].clone()
-        baby.brain.mutate()
+    def create_offspring(self):
+        baby = self.avatars[random.randint(1, len(self.avatars)) - 1].replicate()
+        baby.brain.evolve()
         return baby
-
-
-
-
-
-
-
-
-
-
